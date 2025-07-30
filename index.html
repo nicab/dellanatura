@@ -937,52 +937,25 @@
                     return;
                 }
 
+
                 Elements.researchResults.innerHTML = `
                     <div class="text-center mb-4">
-                        <div class="alert alert-success">
-                            <h4 class="alert-heading">✅ ¡Reporte listo!</h4>
-                            <p class="mb-3">Tu análisis de inteligencia competitiva ha sido generado exitosamente.</p>
+                        <div class="alert alert-info">
+                            <h4 class="alert-heading">🔄 ¡Generando reporte!</h4>
+                            <p class="mb-3">El reporte está siendo generado y estará disponible en aproximadamente 5 minutos en la carpeta de Drive.</p>
                             <hr>
                             <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                                <a href="${result.report_url}" target="_blank" class="btn btn-primary btn-lg">
-                                    📊 Abrir reporte
+                                <a href="https://drive.google.com/drive/u/0/folders/1mwULBmRkWsz6o6JSX83jYqKrCapQtFyO" target="_blank" class="btn btn-primary btn-lg">
+                                    📁 Abrir carpeta de Drive
                                 </a>
-                                <button class="btn btn-outline-primary btn-lg" onclick="Utils.copyToClipboard('${result.report_url}')">
-                                    🔗 Copiar enlace
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">📋 Contenido del reporte</h5>
-                                    <ul class="list-unstyled">
-                                        <li>• Resumen ejecutivo</li>
-                                        <li>• Análisis competitivo</li>
-                                        <li>• Oportunidades de mercado</li>
-                                        <li>• Recomendaciones estratégicas</li>
-                                        <li>• Fuentes y referencias</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">📊 Detalles del análisis</h5>
-                                    <p><strong>Formato:</strong> Google Docs</p>
-                                    <p><strong>Acceso:</strong> Compartido con permiso de vista</p>
-                                    <p><strong>Actualización:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
-                                    <p><strong>Fuentes:</strong> ${result.sources_count || 'Múltiples'} fuentes analizadas</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            },
+                           </div>
+                        <div class="spinner-border text-primary mt-3" role="status">
+                          <span class="visually-hidden">Generando...</span>
+                     </div>
+                 </div>
+             </div>
+        `;
+    },
 
             renderErrorResults(result) {
                 Elements.researchResults.innerHTML = `
