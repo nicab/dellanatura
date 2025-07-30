@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agente_001 - Inteligencia Competitiva</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #0d6efd;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --secondary-color: #6c757d;
+            --border-radius: 0.375rem;
+            --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .container-main {
+            max-width: 960px;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .card:hover {
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .form-check-label .badge {
+            font-size: 0.75em;
+            vertical-align: middle;
+        }
+
+        .page-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .page-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .progress-indicator {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .progress-indicator li {
+            margin-bottom: 0.5rem;
+            opacity: 0;
+            animation: fadeInUp 0.5s ease forwards;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .results-section h5 {
+            cursor: pointer;
+        }
+
+        #market-tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: var(--border-radius);
+            margin-bottom: 0.5rem;
+            min-height: 3rem;
+            background-color: #fff;
+        }
+
+        .market-tag {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            font-size: 0.9em;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 2px 10px rgba(13, 110, 253, 0.3);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.8);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .market-tag .remove-tag {
+            background: none;
+            border: none;
+            color: white;
+            margin-left: 0.5rem;
+            font-weight: bold;
+            font-size: 1.1em;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .market-tag .remove-tag:hover {
+            opacity: 0.7;
+        }
+
+        .custom-alert {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1050;
+            min-width: 300px;
+            max-width: 500px;
+            animation: slideDown 0.3s ease;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-badge {
+            font-size: 0.75em;
+            padding: 0.25em 0.5em;
+        }
+
+        .research-summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), #0056b3);
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(13, 110, 253, 0.3);
+        }
+
+        .research-progress-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.9));
+        }
+
+        .result-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .result-section {
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .confidence-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: #e9ecef;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .confidence-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #198754 0%, #ffc107 70%, #dc3545 100%);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .documents-loading {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-light shadow-sm mb-4">
+        <div class="container-main container-fluid">
+            <a class="navbar-brand" href="#">
+                <strong>🤖 Agente_001</strong> IA
+            </a>
+            <span class="navbar-text">
+                Plataforma de Inteligencia Competitiva
+            </span>
+        </div>
+    </nav>
+
+    <!-- Research Interface -->
+    <div id="researchInterface" class="page-section active container container-main mt-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="bi bi-search me-2"></i>1. Investigación de Producto
+            </div>
+            <div class="card-body">
+                <label for="productInput" class="form-label">Define el tema principal de investigación</label>
+                <input type="text" class="form-control" id="productInput" placeholder="ej., 'Zweet endulzante stevia'" list="productSuggestions">
+                <datalist id="productSuggestions">
+                    <option value="Zweet endulzante stevia">
+                    <option value="alternativa azúcar fruta del monje">
+                    <option value="endulzantes saludables para hornear">
+                    <option value="productos base eritritol">
+                </datalist>
+                <div class="form-text">Requiere un mínimo de 3 caracteres para continuar.</div>
+                <div class="invalid-feedback" id="productInputFeedback"></div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">2. Cargar nuevos documentos</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="fileUploadInput" class="form-label">Selecciona un archivo para cargar</label>
+                    <input class="form-control" type="file" id="fileUploadInput" accept=".pdf,.doc,.docx,.txt,.csv,.xlsx">
+                </div>
+                <button id="uploadBtn" class="btn btn-secondary">
+                    <span class="upload-text">Cargar archivo</span>
+                    <span class="upload-spinner loading-spinner d-none"></span>
+                </button>
+                <div id="upload-feedback" class="alert mt-3" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="card mb-4">
+                    <div class="card-header">3. Secciones del reporte</div>
+                    <div class="card-body">
+                        <p class="card-subtitle mb-3 text-muted">Selecciona las secciones que deseas incluir en tu reporte.</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input report-section" type="checkbox" value="competitors" id="sect_competitors" checked>
+                                    <label class="form-check-label" for="sect_competitors">
+                                        🏆 Análisis de competidores
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input report-section" type="checkbox" value="opportunities" id="sect_opportunities" checked>
+                                    <label class="form-check-label" for="sect_opportunities">
+                                        🚀 Oportunidades de mercado
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input report-section" type="checkbox" value="pricing" id="sect_pricing">
+                                    <label class="form-check-label" for="sect_pricing">
+                                        💰 Inteligencia de precios
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input report-section" type="checkbox" value="btl" id="sect_btl">
+                                    <label class="form-check-label" for="sect_btl">
+                                        📢 Activaciones BTL
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input report-section" type="checkbox" value="custom" id="sect_custom">
+                            <label class="form-check-label" for="sect_custom">
+                                ⚡ Análisis personalizado (basado en tu pregunta específica)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">4. Enfoque de mercado</div>
+                    <div class="card-body">
+                        <label class="form-label">Agregar países o continentes</label>
+                        <div id="market-tags-container">
+                            <!-- Market tags will be rendered here -->
+                        </div>
+                        <div class="input-group">
+                            <input type="text" id="market-input" class="form-control" placeholder="ej., Brasil, Europa">
+                            <button id="add-market-btn" class="btn btn-outline-secondary" type="button">Agregar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">5. Consulta de investigación</div>
+            <div class="card-body">
+                 <div class="mb-3">
+                    <label for="suggestedQuestions" class="form-label">A. Preguntas sugeridas</label>
+                    <div class="input-group">
+                        <select id="suggestedQuestions" class="form-select">
+                            <option value="">Selecciona una pregunta sugerida...</option>
+                            <option value="¿Quiénes son nuestros principales competidores en el mercado de {product}?">¿Quiénes son nuestros principales competidores en el mercado de {product}?</option>
+                            <option value="¿Qué estrategias de precios están usando los competidores para {product}?">¿Qué estrategias de precios están usando los competidores para {product}?</option>
+                            <option value="¿Cuáles son las últimas tendencias del mercado que afectan a {product}?">¿Cuáles son las últimas tendencias del mercado que afectan a {product}?</option>
+                            <option value="¿Qué campañas de marketing están ejecutando los competidores para {product}?">¿Qué campañas de marketing están ejecutando los competidores para {product}?</option>
+                            <option value="¿Cuáles son las oportunidades de crecimiento para {product}?">¿Cuáles son las oportunidades de crecimiento para {product}?</option>
+                        </select>
+                        <button class="btn btn-outline-secondary" type="button" id="suggestMoreBtn">Usar Pregunta</button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="customQuestion" class="form-label">B. Pregunta personalizada</label>
+                    <textarea class="form-control" id="customQuestion" rows="3" placeholder="O escribe tu propia pregunta de investigación aquí..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mb-5">
+            <button id="startResearchBtn" class="btn btn-primary btn-lg">
+                <span class="research-text">🚀 Comenzar investigación</span>
+                <span class="research-spinner loading-spinner d-none"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Research Progress -->
+    <div id="researchProgress" class="page-section container container-main mt-4 text-center">
+         <div class="card research-progress-card">
+            <div class="card-body">
+                <h4 class="card-title">🔍 Investigación en progreso...</h4>
+                <p class="card-text">Tiempo transcurrido: <span id="timer" class="fw-bold">00:00</span></p>
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <ul id="progressSteps" class="progress-indicator mt-4 text-start w-75 mx-auto"></ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Page -->
+    <div id="resultsPage" class="page-section container container-main mt-4">
+        <div class="card result-card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>🎯 Agente_001 IA - Resultados de investigación</span>
+                <button class="btn btn-sm btn-outline-light" onclick="startNewResearch()">Nueva investigación</button>
+            </div>
+            <div class="card-body">
+                 <div class="alert research-summary">
+                    <strong>Investigación:</strong> "<span id="resultQuery">Competidores de Zweet en Brasil</span>"<br>
+                    <strong>Duración:</strong> ⏱️ <span id="resultTime">2:45</span><br>
+                    <strong>Colecciones:</strong> <span id="resultCollections">documentos seleccionados</span><br>
+                    <strong>Enfoque de mercado:</strong> <span id="resultMarkets">Brasil, Chile</span>
+                </div>
+                
+                <div id="research-results" class="mt-4">
+                    <!-- Report download will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Configuration - UPDATE THESE URLs TO MATCH YOUR N8N DEPLOYMENT
+        const CONFIG = {
+            N8N_RESEARCH_WEBHOOK_URL: 'https://nicab.app.n8n.cloud/webhook/research',
+            N8N_UPLOAD_WEBHOOK_URL: 'https://nicab.app.n8n.cloud/webhook/upload',
+            MIN_PRODUCT_LENGTH: 3,
+            ALERT_DURATION: 4000,
+            PROGRESS_STEP_INTERVAL: 1500
+        };
+
+        // Application State
+        const AppState = {
+            marketFocusTags: ['Chile'], // Default tag
+            currentPage: 'researchInterface',
+            isResearchInProgress: false,
+            isUploadInProgress: false,
+            researchStartTime: null,
+            timerInterval: null
+        };
+
+        // DOM Elements Cache
+        const Elements = {
+            // Pages
+            researchInterface: document.getElementById('researchInterface'),
+            researchProgress: document.getElementById('researchProgress'),
+            resultsPage: document.getElementById('resultsPage'),
+            
+            // Form elements
+            productInput: document.getElementById('productInput'),
+            researchTypeSelect: document.getElementById('researchType'),
+            suggestedQuestions: document.getElementById('suggestedQuestions'),
+            customQuestion: document.getElementById('customQuestion'),
+            startResearchBtn: document.getElementById('startResearchBtn'),
+            
+            // Market focus
+            marketInput: document.getElementById('market-input'),
+            addMarketBtn: document.getElementById('add-market-btn'),
+            marketTagsContainer: document.getElementById('market-tags-container'),
+            
+            // File upload
+            fileUploadInput: document.getElementById('fileUploadInput'),
+            uploadBtn: document.getElementById('uploadBtn'),
+            uploadFeedback: document.getElementById('upload-feedback'),
+            
+            // Progress and results
+            timerEl: document.getElementById('timer'),
+            progressStepsEl: document.getElementById('progressSteps'),
+            resultQuery: document.getElementById('resultQuery'),
+            resultTime: document.getElementById('resultTime'),
+            resultCollections: document.getElementById('resultCollections'),
+            resultMarkets: document.getElementById('resultMarkets'),
+            researchResults: document.getElementById('research-results')
+        };
+
+        // Utility Functions
+        const Utils = {
+            debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func(...args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            },
+
+            formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const secs = (seconds % 60).toString().padStart(2, '0');
+                return `${minutes}:${secs}`;
+            },
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            },
+
+            formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            },
+
+            showAlert(message, type = 'danger') {
+                const alert = document.createElement('div');
+                alert.className = `alert alert-${type} custom-alert`;
+                alert.setAttribute('role', 'alert');
+                alert.innerHTML = `
+                    <div class="d-flex align-items-center">
+                        <span>${message}</span>
+                        <button type="button" class="btn-close ms-auto" aria-label="Cerrar"></button>
+                    </div>
+                `;
+                
+                document.body.appendChild(alert);
+                
+                // Auto-remove after duration
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                    }
+                }, CONFIG.ALERT_DURATION);
+                
+                // Manual close
+                alert.querySelector('.btn-close').addEventListener('click', () => {
+                    alert.remove();
+                });
+            },
+
+            switchPage(pageName) {
+                document.querySelectorAll('.page-section').forEach(page => {
+                    page.classList.remove('active');
+                });
+                document.getElementById(pageName).classList.add('active');
+                AppState.currentPage = pageName;
+            },
+
+            validateForm() {
+                const product = Elements.productInput.value.trim();
+                const question = Elements.customQuestion.value.trim() || Elements.suggestedQuestions.value;
+
+                if (product.length < CONFIG.MIN_PRODUCT_LENGTH) {
+                    Utils.showAlert('El nombre del producto debe tener al menos 3 caracteres.');
+                    return false;
+                }
+
+                if (!question) {
+                    Utils.showAlert('Por favor proporciona una pregunta de investigación.');
+                    return false;
+                }
+
+                return true;
+            },
+
+            getSelectedCollections() {
+                return Array.from(document.querySelectorAll('.knowledge-collection:checked'))
+                    .map(checkbox => checkbox.value);
+            },
+
+            getSelectedSections() {
+                return Array.from(document.querySelectorAll('.report-section:checked'))
+                    .map(checkbox => checkbox.value);
+            },
+
+            copyToClipboard(text) {
+                navigator.clipboard.writeText(text).then(
+                    () => Utils.showAlert('¡Enlace copiado al portapapeles!', 'success'),
+                    (err) => Utils.showAlert('Error al copiar enlace. Intenta seleccionar y copiar manualmente.', 'warning')
+                );
+            },
+
+            replaceProductPlaceholder(question) {
+                const product = Elements.productInput.value.trim();
+                if (product && product.length >= CONFIG.MIN_PRODUCT_LENGTH) {
+                    return question.replace(/{product}/g, product);
+                }
+                return question; // Return unchanged if no valid product
+            },
+
+            updateSuggestedQuestions() {
+                const product = Elements.productInput.value.trim();
+                const currentValue = Elements.suggestedQuestions.value;
+                
+                // Clear and repopulate with updated product
+                Elements.suggestedQuestions.innerHTML = '<option value="">Selecciona una pregunta sugerida...</option>';
+                
+                const questions = [
+                    "¿Quiénes son nuestros principales competidores en el mercado de {product}?",
+                    "¿Qué estrategias de precios están usando los competidores para {product}?",
+                    "¿Cuáles son las últimas tendencias del mercado que afectan a {product}?",
+                    "¿Qué campañas de marketing están ejecutando los competidores para {product}?",
+                    "¿Cuáles son las oportunidades de crecimiento para {product}?",
+                    "¿Cuáles son los desafíos regulatorios que enfrenta {product}?",
+                    "¿Qué canales de distribución están usando los competidores para {product}?",
+                    "¿Cuáles son los factores clave de éxito en el mercado de {product}?",
+                    "¿Qué tecnologías emergentes podrían interrumpir el mercado de {product}?",
+                    "¿Cuáles son los patrones estacionales en la demanda de {product}?"
+                ];
+
+                questions.forEach(question => {
+                    const option = document.createElement('option');
+                    option.value = question; // Keep original with {product} placeholder
+                    
+                    // Display with actual product name if available
+                    if (product && product.length >= CONFIG.MIN_PRODUCT_LENGTH) {
+                        option.textContent = question.replace(/{product}/g, product);
+                    } else {
+                        option.textContent = question;
+                    }
+                    
+                    Elements.suggestedQuestions.appendChild(option);
+                });
+
+                // Restore selection if it existed
+                if (currentValue) {
+                    Elements.suggestedQuestions.value = currentValue;
+                }
+            }
+        };
+
+        // Market Focus Management
+        const MarketFocus = {
+            renderTags() {
+                Elements.marketTagsContainer.innerHTML = '';
+                AppState.marketFocusTags.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'market-tag';
+                    tagEl.innerHTML = `
+                        ${tag}
+                        <button class="remove-tag" data-tag="${tag}">&times;</button>
+                    `;
+                    Elements.marketTagsContainer.appendChild(tagEl);
+                });
+            },
+
+            addTag(tag) {
+                const trimmedTag = tag.trim();
+                if (trimmedTag && !AppState.marketFocusTags.includes(trimmedTag)) {
+                    AppState.marketFocusTags.push(trimmedTag);
+                    this.renderTags();
+                }
+            },
+
+            removeTag(tag) {
+                AppState.marketFocusTags = AppState.marketFocusTags.filter(t => t !== tag);
+                this.renderTags();
+            }
+        };
+
+        // File Upload Management
+        const FileUpload = {
+            async uploadFile() {
+                const fileInput = Elements.fileUploadInput;
+                const file = fileInput.files[0];
+
+                if (!file) {
+                    Utils.showAlert('Por favor selecciona un archivo para cargar.');
+                    return;
+                }
+
+                AppState.isUploadInProgress = true;
+                this.updateUploadUI(true);
+
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('filename', file.name);
+                    formData.append('collection', 'general');
+
+                    const response = await fetch(CONFIG.N8N_UPLOAD_WEBHOOK_URL, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`Carga falló: ${response.status} ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        Utils.showAlert(`Archivo "${file.name}" cargado exitosamente!`, 'success');
+                        Elements.uploadFeedback.className = 'alert alert-success mt-3';
+                        Elements.uploadFeedback.innerHTML = `
+                            <strong>¡Carga exitosa!</strong><br>
+                            Archivo: ${file.name}<br>
+                            Estado: Disponible para investigación
+                        `;
+                        Elements.uploadFeedback.style.display = 'block';
+                        
+                        // Reset form
+                        fileInput.value = '';
+                    } else {
+                        throw new Error(result.message || 'Carga falló');
+                    }
+
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    Utils.showAlert(`Carga falló: ${error.message}`);
+                    Elements.uploadFeedback.className = 'alert alert-danger mt-3';
+                    Elements.uploadFeedback.innerHTML = `
+                        <strong>Error en la carga:</strong> ${error.message}<br>
+                        <button class="btn btn-sm btn-warning mt-2" onclick="FileUpload.uploadFile()">
+                            🔄 Reintentar carga
+                        </button>
+                    `;
+                    Elements.uploadFeedback.style.display = 'block';
+                } finally {
+                    AppState.isUploadInProgress = false;
+                    this.updateUploadUI(false);
+                }
+            },
+
+            updateUploadUI(isUploading) {
+                const uploadText = Elements.uploadBtn.querySelector('.upload-text');
+                const uploadSpinner = Elements.uploadBtn.querySelector('.upload-spinner');
+
+                if (isUploading) {
+                    uploadText.textContent = 'Cargando...';
+                    uploadSpinner.classList.remove('d-none');
+                    Elements.uploadBtn.disabled = true;
+                } else {
+                    uploadText.textContent = 'Cargar archivo';
+                    uploadSpinner.classList.add('d-none');
+                    Elements.uploadBtn.disabled = false;
+                }
+            }
+        };
+
+        // Research Management
+        const Research = {
+            async startResearch() {
+                if (!Utils.validateForm()) {
+                    return;
+                }
+
+                AppState.isResearchInProgress = true;
+                AppState.researchStartTime = Date.now();
+                
+                this.updateResearchUI(true);
+                Utils.switchPage('researchProgress');
+                this.startTimer();
+                this.simulateProgress();
+
+                try {
+                    const researchData = {
+                        question: Elements.customQuestion.value.trim() || Elements.suggestedQuestions.value,
+                        product: Elements.productInput.value.trim(),
+                        marketFocus: AppState.marketFocusTags,
+                        reportSections: Utils.getSelectedSections(),
+                        currency: AppState.marketFocusTags.includes('Chile') ? 'CLP' : 'USD',
+                        language: 'es'
+                    };
+
+                    // Replace product placeholder in question
+                    researchData.question = researchData.question.replace(/{product}/g, researchData.product);
+
+                    const response = await fetch(CONFIG.N8N_RESEARCH_WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(researchData)
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Investigación falló: ${response.status} ${response.statusText}. Response: ${errorText}`);
+                    }
+
+                    const responseText = await response.text();
+
+                    if (!responseText || responseText.trim() === '') {
+                        throw new Error('Respuesta vacía del webhook N8N. El flujo de trabajo puede no estar configurado para devolver datos.');
+                    }
+
+                    let result;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (parseError) {
+                        throw new Error(`Respuesta JSON inválida del webhook N8N. Se esperaba JSON pero se recibió: "${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}"`);
+                    }
+                    this.displayResults(result, researchData);
+
+                } catch (error) {
+                    console.error('Research error:', error);
+                    
+                    let errorMessage = error.message;
+                    if (error.message.includes('Failed to fetch')) {
+                        errorMessage = 'Error de red: No se puede conectar al webhook N8N. Verifica si la URL es correcta y el servicio está funcionando.';
+                    } else if (error.message.includes('CORS')) {
+                        errorMessage = 'Error CORS: El webhook N8N necesita permitir solicitudes de origen cruzado desde este dominio.';
+                    }
+                    
+                    Utils.showAlert(`Investigación falló: ${errorMessage}`);
+                    
+                    // Show retry option
+                    Elements.researchResults.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5 class="alert-heading">❌ Error en la investigación</h5>
+                            <p><strong>Error:</strong> ${errorMessage}</p>
+                            <hr>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <button class="btn btn-warning" onclick="Research.startResearch()">
+                                    🔄 Reintentar investigación
+                                </button>
+                                <button class="btn btn-secondary" onclick="startNewResearch()">
+                                    ← Volver al inicio
+                                </button>
+                            </div>
+                            <details class="mt-3">
+                                <summary>Información técnica</summary>
+                                <p><strong>URL:</strong> ${CONFIG.N8N_RESEARCH_WEBHOOK_URL}</p>
+                                <p><strong>Solución de problemas:</strong></p>
+                                <ul>
+                                    <li>Verificar que el flujo de trabajo N8N esté activo</li>
+                                    <li>Revisar configuración CORS del webhook</li>
+                                    <li>Confirmar APIs de SerpAPI y Claude</li>
+                                </ul>
+                            </details>
+                        </div>
+                    `;
+                    Utils.switchPage('resultsPage');
+                } finally {
+                    AppState.isResearchInProgress = false;
+                    this.updateResearchUI(false);
+                    this.stopTimer();
+                }
+            },
+
+            updateResearchUI(isResearching) {
+                const researchText = Elements.startResearchBtn.querySelector('.research-text');
+                const researchSpinner = Elements.startResearchBtn.querySelector('.research-spinner');
+
+                if (isResearching) {
+                    researchText.textContent = 'Investigando...';
+                    researchSpinner.classList.remove('d-none');
+                    Elements.startResearchBtn.disabled = true;
+                } else {
+                    researchText.textContent = '🚀 Comenzar investigación';
+                    researchSpinner.classList.add('d-none');
+                    Elements.startResearchBtn.disabled = false;
+                }
+            },
+
+            startTimer() {
+                AppState.timerInterval = setInterval(() => {
+                    if (AppState.researchStartTime) {
+                        const elapsed = Math.floor((Date.now() - AppState.researchStartTime) / 1000);
+                        Elements.timerEl.textContent = Utils.formatTime(elapsed);
+                    }
+                }, 1000);
+            },
+
+            stopTimer() {
+                if (AppState.timerInterval) {
+                    clearInterval(AppState.timerInterval);
+                    AppState.timerInterval = null;
+                }
+            },
+
+            simulateProgress() {
+                const steps = [
+                    '🔍 Analizando consulta de investigación...',
+                    '📚 Procesando documentos cargados...',
+                    '🌐 Buscando información de mercado actualizada...',
+                    '🤖 Sintetizando análisis con IA...',
+                    '📊 Generando reporte ejecutivo...',
+                    '✅ Preparando descarga...'
+                ];
+
+                Elements.progressStepsEl.innerHTML = '';
+                
+                steps.forEach((step, index) => {
+                    setTimeout(() => {
+                        const li = document.createElement('li');
+                        li.textContent = step;
+                        li.style.animationDelay = `${index * 0.1}s`;
+                        Elements.progressStepsEl.appendChild(li);
+                    }, index * CONFIG.PROGRESS_STEP_INTERVAL);
+                });
+            },
+
+            displayResults(result, originalRequest) {
+                const elapsedTime = AppState.researchStartTime 
+                    ? Utils.formatTime(Math.floor((Date.now() - AppState.researchStartTime) / 1000))
+                    : '00:00';
+
+                // Update result summary
+                Elements.resultQuery.textContent = originalRequest.question;
+                Elements.resultTime.textContent = elapsedTime;
+                Elements.resultCollections.textContent = 'Documentos cargados utilizados automáticamente';
+                Elements.resultMarkets.textContent = originalRequest.marketFocus.join(', ');
+
+                // Display report download
+                if (result.status === 'success' && result.report_url) {
+                    this.renderReportReady(result);
+                } else if (result.status === 'error') {
+                    this.renderErrorResults(result);
+                } else {
+                    this.renderLegacyResults(result);
+                }
+
+                Utils.switchPage('resultsPage');
+            },
+
+            renderReportReady(result) {
+                if (!result.report_url) {
+                    this.renderErrorResults({ error_message: 'No se pudo generar el enlace del reporte.' });
+                    return;
+                }
+
+                Elements.researchResults.innerHTML = `
+                    <div class="text-center mb-4">
+                        <div class="alert alert-success">
+                            <h4 class="alert-heading">✅ ¡Reporte listo!</h4>
+                            <p class="mb-3">Tu análisis de inteligencia competitiva ha sido generado exitosamente.</p>
+                            <hr>
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                                <a href="${result.report_url}" target="_blank" class="btn btn-primary btn-lg">
+                                    📊 Abrir reporte
+                                </a>
+                                <button class="btn btn-outline-primary btn-lg" onclick="Utils.copyToClipboard('${result.report_url}')">
+                                    🔗 Copiar enlace
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">📋 Contenido del reporte</h5>
+                                    <ul class="list-unstyled">
+                                        <li>• Resumen ejecutivo</li>
+                                        <li>• Análisis competitivo</li>
+                                        <li>• Oportunidades de mercado</li>
+                                        <li>• Recomendaciones estratégicas</li>
+                                        <li>• Fuentes y referencias</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">📊 Detalles del análisis</h5>
+                                    <p><strong>Formato:</strong> Google Docs</p>
+                                    <p><strong>Acceso:</strong> Compartido con permiso de vista</p>
+                                    <p><strong>Actualización:</strong> ${new Date().toLocaleDateString('es-ES')}</p>
+                                    <p><strong>Fuentes:</strong> ${result.sources_count || 'Múltiples'} fuentes analizadas</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            renderErrorResults(result) {
+                Elements.researchResults.innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">❌ Investigación falló</h5>
+                        <p>${result.error_message || 'Ocurrió un error inesperado durante la investigación.'}</p>
+                        ${result.analysis && result.analysis.recommendations ? `
+                            <hr>
+                            <h6>Acciones Sugeridas:</h6>
+                            <ul>
+                                ${result.analysis.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                    </div>
+                `;
+            },
+
+            renderLegacyResults(result) {
+                Elements.researchResults.innerHTML = `
+                    <div class="result-section">
+                        <h5 class="text-primary">📋 Resultados de investigación</h5>
+                        <p>Resultados recibidos del flujo de trabajo de investigación:</p>
+                        <pre class="bg-light p-3 rounded"><code>${JSON.stringify(result, null, 2)}</code></pre>
+                        <p class="text-muted">
+                            <small>Nota: Este parece ser un formato de respuesta heredado. Considera actualizar tu flujo de trabajo N8N para que coincida con la estructura de respuesta esperada.</small>
+                        </p>
+                    </div>
+                `;
+            }
+        };
+
+        // Event Listeners Setup
+        function initializeEventListeners() {
+            // Market Focus Management
+            Elements.addMarketBtn.addEventListener('click', () => {
+                const value = Elements.marketInput.value.trim();
+                if (value) {
+                    MarketFocus.addTag(value);
+                    Elements.marketInput.value = '';
+                }
+            });
+
+            Elements.marketInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    Elements.addMarketBtn.click();
+                }
+            });
+
+            Elements.marketTagsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('remove-tag')) {
+                    const tag = e.target.getAttribute('data-tag');
+                    MarketFocus.removeTag(tag);
+                }
+            });
+
+            // Suggested Questions with product replacement
+            Elements.suggestedQuestions.addEventListener('change', (e) => {
+                if (e.target.value) {
+                    const questionWithProduct = Utils.replaceProductPlaceholder(e.target.value);
+                    Elements.customQuestion.value = questionWithProduct;
+                }
+            });
+
+            document.getElementById('suggestMoreBtn').addEventListener('click', () => {
+                const selectedQuestion = Elements.suggestedQuestions.value;
+                if (selectedQuestion) {
+                    const questionWithProduct = Utils.replaceProductPlaceholder(selectedQuestion);
+                    Elements.customQuestion.value = questionWithProduct;
+                    Utils.showAlert('¡Pregunta agregada con producto actualizado!', 'success');
+                } else {
+                    Utils.showAlert('Por favor selecciona una pregunta primero.');
+                }
+            });
+
+            // Auto-update questions when product changes
+            Elements.productInput.addEventListener('input', Utils.debounce((e) => {
+                const value = e.target.value.trim();
+                const feedback = document.getElementById('productInputFeedback');
+                
+                // Validation
+                if (value.length > 0 && value.length < CONFIG.MIN_PRODUCT_LENGTH) {
+                    e.target.classList.add('is-invalid');
+                    feedback.textContent = `Por favor ingresa al menos ${CONFIG.MIN_PRODUCT_LENGTH} caracteres.`;
+                } else {
+                    e.target.classList.remove('is-invalid');
+                    feedback.textContent = '';
+                }
+
+                // Update suggested questions dropdown
+                Utils.updateSuggestedQuestions();
+                
+                // Update custom question if it contains the old product placeholder
+                const currentQuestion = Elements.customQuestion.value;
+                if (currentQuestion && currentQuestion.includes('{product}')) {
+                    Elements.customQuestion.value = Utils.replaceProductPlaceholder(currentQuestion);
+                }
+            }, 300));
+
+            // File Upload
+            Elements.uploadBtn.addEventListener('click', () => {
+                if (!AppState.isUploadInProgress) {
+                    FileUpload.uploadFile();
+                }
+            });
+
+            // Research
+            Elements.startResearchBtn.addEventListener('click', () => {
+                if (!AppState.isResearchInProgress) {
+                    Research.startResearch();
+                }
+            });
+
+            // File input change handler
+            Elements.fileUploadInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    // Show file info
+                    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                    Elements.uploadFeedback.className = 'alert alert-info mt-3';
+                    Elements.uploadFeedback.innerHTML = `
+                        <strong>Archivo Seleccionado:</strong><br>
+                        Nombre: ${file.name}<br>
+                        Tamaño: ${fileSize} MB<br>
+                        Tipo: ${file.type}
+                    `;
+                    Elements.uploadFeedback.style.display = 'block';
+                }
+            });
+        }
+
+        // Global Functions
+        window.startNewResearch = function() {
+            AppState.isResearchInProgress = false;
+            AppState.researchStartTime = null;
+            Research.stopTimer();
+            Research.updateResearchUI(false);
+            Utils.switchPage('researchInterface');
+        };
+
+        // Initialize Application
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize market focus with default tag
+            MarketFocus.renderTags();
+            
+            // Setup event listeners
+            initializeEventListeners();
+            
+            // Initialize suggested questions with product placeholders
+            Utils.updateSuggestedQuestions();
+            
+            // Show success message
+            setTimeout(() => {
+                Utils.showAlert('🚀 ¡Agente_001 IA está listo para investigación de inteligencia competitiva!', 'success');
+            }, 1000);
+        });
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && AppState.isResearchInProgress) {
+                // Pause timer when page is hidden
+                Research.stopTimer();
+            } else if (!document.hidden && AppState.isResearchInProgress) {
+                // Resume timer when page is visible
+                Research.startTimer();
+            }
+        });
+
+        // Error handling for fetch requests
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled promise rejection:', event.reason);
+            Utils.showAlert('Ocurrió un error inesperado. Por favor intenta de nuevo.');
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + Enter to start research
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                if (AppState.currentPage === 'researchInterface' && !AppState.isResearchInProgress) {
+                    Research.startResearch();
+                }
+            }
+            
+            // Escape to go back to research interface
+            if (e.key === 'Escape' && AppState.currentPage !== 'researchInterface') {
+                startNewResearch();
+            }
+        });
+    </script>
+</body>
+</html>
