@@ -757,103 +757,121 @@
         // Research Management
         const Research = {
             async startResearch() {
-                if (!Utils.validateForm()) {
-                    return;
+    if (!Utils.validateForm()) {
+        return;
+    }
+
+    AppState.isResearchInProgress = true;
+    AppState.researchStartTime = Date.now();
+    
+    this.updateResearchUI(true);
+    Utils.switchPage('researchProgress');
+    this.startTimer();
+    this.simulateProgress();
+
+    try {
+        const researchData = {
+            question: Elements.customQuestion.value.trim() || Elements.suggestedQuestions.value,
+            product: Elements.productInput.value.trim(),
+            marketFocus: AppState.marketFocusTags,
+            reportSections: Utils.getSelectedSections(),
+            currency: AppState.marketFocusTags.includes('Chile') ? 'CLP' : 'USD',
+            language: 'es'
+        };
+
+        // Replace product placeholder in question
+        researchData.question = researchData.question.replace(/{product}/g, researchData.product);
+
+        // Check if file is selected
+        const fileInput = Elements.fileUploadInput;
+        const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+
+        let requestBody;
+        let requestHeaders = {};
+
+        if (hasFile) {
+            // Send as multipart/form-data with file
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('filename', fileInput.files[0].name);
+            
+            // Add all research data as individual form fields
+            Object.keys(researchData).forEach(key => {
+                if (Array.isArray(researchData[key])) {
+                    formData.append(key, JSON.stringify(researchData[key]));
+                } else {
+                    formData.append(key, researchData[key]);
                 }
+            });
+            
+            requestBody = formData;
+            // Don't set Content-Type - let browser set it with boundary
+        } else {
+            // Send as JSON (no file)
+            requestBody = JSON.stringify(researchData);
+            requestHeaders['Content-Type'] = 'application/json';
+        }
 
-                AppState.isResearchInProgress = true;
-                AppState.researchStartTime = Date.now();
-                
-                this.updateResearchUI(true);
-                Utils.switchPage('researchProgress');
-                this.startTimer();
-                this.simulateProgress();
+        const response = await fetch(CONFIG.N8N_RESEARCH_WEBHOOK_URL, {
+            method: 'POST',
+            headers: requestHeaders,
+            body: requestBody
+        });
 
-                try {
-                    const researchData = {
-                        question: Elements.customQuestion.value.trim() || Elements.suggestedQuestions.value,
-                        product: Elements.productInput.value.trim(),
-                        marketFocus: AppState.marketFocusTags,
-                        reportSections: Utils.getSelectedSections(),
-                        currency: AppState.marketFocusTags.includes('Chile') ? 'CLP' : 'USD',
-                        language: 'es'
-                    };
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Investigación falló: ${response.status} ${response.statusText}. Response: ${errorText}`);
+        }
 
-                    // Replace product placeholder in question
-                    researchData.question = researchData.question.replace(/{product}/g, researchData.product);
+        const responseText = await response.text();
 
-                    const response = await fetch(CONFIG.N8N_RESEARCH_WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(researchData)
-                    });
+        if (!responseText || responseText.trim() === '') {
+            throw new Error('Respuesta vacía del webhook N8N. El flujo de trabajo puede no estar configurado para devolver datos.');
+        }
 
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`Investigación falló: ${response.status} ${response.statusText}. Response: ${errorText}`);
-                    }
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            throw new Error(`Respuesta JSON inválida del webhook N8N. Se esperaba JSON pero se recibió: "${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}"`);
+        }
+        this.displayResults(result, researchData);
 
-                    const responseText = await response.text();
-
-                    if (!responseText || responseText.trim() === '') {
-                        throw new Error('Respuesta vacía del webhook N8N. El flujo de trabajo puede no estar configurado para devolver datos.');
-                    }
-
-                    let result;
-                    try {
-                        result = JSON.parse(responseText);
-                    } catch (parseError) {
-                        throw new Error(`Respuesta JSON inválida del webhook N8N. Se esperaba JSON pero se recibió: "${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}"`);
-                    }
-                    this.displayResults(result, researchData);
-
-                } catch (error) {
-                    console.error('Research error:', error);
-                    
-                    let errorMessage = error.message;
-                    if (error.message.includes('Failed to fetch')) {
-                        errorMessage = 'Error de red: No se puede conectar al webhook N8N. Verifica si la URL es correcta y el servicio está funcionando.';
-                    } else if (error.message.includes('CORS')) {
-                        errorMessage = 'Error CORS: El webhook N8N necesita permitir solicitudes de origen cruzado desde este dominio.';
-                    }
-                    
-                    Utils.showAlert(`Investigación falló: ${errorMessage}`);
-                    
-                    // Show retry option
-                    Elements.researchResults.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h5 class="alert-heading">❌ Error en la investigación</h5>
-                            <p><strong>Error:</strong> ${errorMessage}</p>
-                            <hr>
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                                <button class="btn btn-warning" onclick="Research.startResearch()">
-                                    🔄 Reintentar investigación
-                                </button>
-                                <button class="btn btn-secondary" onclick="startNewResearch()">
-                                    ← Volver al inicio
-                                </button>
-                            </div>
-                            <details class="mt-3">
-                                <summary>Información técnica</summary>
-                                <p><strong>URL:</strong> ${CONFIG.N8N_RESEARCH_WEBHOOK_URL}</p>
-                                <p><strong>Solución de problemas:</strong></p>
-                                <ul>
-                                    <li>Verificar que el flujo de trabajo N8N esté activo</li>
-                                    <li>Revisar configuración CORS del webhook</li>
-                                    <li>Confirmar APIs de SerpAPI y Claude</li>
-                                </ul>
-                            </details>
-                        </div>
-                    `;
-                    Utils.switchPage('resultsPage');
-                } finally {
-                    AppState.isResearchInProgress = false;
-                    this.updateResearchUI(false);
-                    this.stopTimer();
-                }
-            },
+    } catch (error) {
+        console.error('Research error:', error);
+        
+        let errorMessage = error.message;
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage = 'Error de red: No se puede conectar al webhook N8N. Verifica si la URL es correcta y el servicio está funcionando.';
+        } else if (error.message.includes('CORS')) {
+            errorMessage = 'Error CORS: El webhook N8N necesita permitir solicitudes de origen cruzado desde este dominio.';
+        }
+        
+        Utils.showAlert(`Investigación falló: ${errorMessage}`);
+        
+        // Show retry option
+        Elements.researchResults.innerHTML = `
+            <div class="alert alert-danger">
+                <h5 class="alert-heading">❌ Error en la investigación</h5>
+                <p><strong>Error:</strong> ${errorMessage}</p>
+                <hr>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <button class="btn btn-warning" onclick="Research.startResearch()">
+                        🔄 Reintentar investigación
+                    </button>
+                    <button class="btn btn-secondary" onclick="startNewResearch()">
+                        ← Volver al inicio
+                    </button>
+                </div>
+            </div>
+        `;
+        Utils.switchPage('resultsPage');
+    } finally {
+        AppState.isResearchInProgress = false;
+        this.updateResearchUI(false);
+        this.stopTimer();
+    }
+},
 
             updateResearchUI(isResearching) {
                 const researchText = Elements.startResearchBtn.querySelector('.research-text');
