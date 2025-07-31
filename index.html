@@ -1066,13 +1066,6 @@
                 }
             }, 300));
 
-            // File Upload
-            Elements.uploadBtn.addEventListener('click', () => {
-                if (!AppState.isUploadInProgress) {
-                    FileUpload.uploadFile();
-                }
-            });
-
             // Research
             Elements.startResearchBtn.addEventListener('click', () => {
                 if (!AppState.isResearchInProgress) {
