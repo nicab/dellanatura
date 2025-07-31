@@ -292,8 +292,12 @@
                 <div class="mb-3">
                     <label for="fileUploadInput" class="form-label">Selecciona un archivo para cargar</label>
                     <input class="form-control" type="file" id="fileUploadInput" accept=".pdf,.doc,.docx,.txt,.csv,.xlsx">
-                    <div class="form-text">El archivo se procesará automáticamente durante la investigación.</div>
                 </div>
+                <button id="uploadBtn" class="btn btn-secondary">
+                    <span class="upload-text">Cargar archivo</span>
+                    <span class="upload-spinner loading-spinner d-none"></span>
+                </button>
+                <div id="upload-feedback" class="alert mt-3" style="display: none;"></div>
             </div>
         </div>
 
@@ -435,6 +439,7 @@
         // Configuration - UPDATE THESE URLs TO MATCH YOUR N8N DEPLOYMENT
         const CONFIG = {
             N8N_RESEARCH_WEBHOOK_URL: 'https://nicab.app.n8n.cloud/webhook/research',
+            N8N_UPLOAD_WEBHOOK_URL: 'https://nicab.app.n8n.cloud/webhook/upload',
             MIN_PRODUCT_LENGTH: 3,
             ALERT_DURATION: 4000,
             PROGRESS_STEP_INTERVAL: 1500
@@ -445,6 +450,7 @@
             marketFocusTags: ['Chile'], // Default tag
             currentPage: 'researchInterface',
             isResearchInProgress: false,
+            isUploadInProgress: false,
             researchStartTime: null,
             timerInterval: null
         };
@@ -458,6 +464,7 @@
             
             // Form elements
             productInput: document.getElementById('productInput'),
+            researchTypeSelect: document.getElementById('researchType'),
             suggestedQuestions: document.getElementById('suggestedQuestions'),
             customQuestion: document.getElementById('customQuestion'),
             startResearchBtn: document.getElementById('startResearchBtn'),
@@ -469,6 +476,8 @@
             
             // File upload
             fileUploadInput: document.getElementById('fileUploadInput'),
+            uploadBtn: document.getElementById('uploadBtn'),
+            uploadFeedback: document.getElementById('upload-feedback'),
             
             // Progress and results
             timerEl: document.getElementById('timer'),
@@ -498,6 +507,25 @@
                 const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
                 const secs = (seconds % 60).toString().padStart(2, '0');
                 return `${minutes}:${secs}`;
+            },
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            },
+
+            formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('es-ES', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
             },
 
             showAlert(message, type = 'danger') {
@@ -549,6 +577,11 @@
                 }
 
                 return true;
+            },
+
+            getSelectedCollections() {
+                return Array.from(document.querySelectorAll('.knowledge-collection:checked'))
+                    .map(checkbox => checkbox.value);
             },
 
             getSelectedSections() {
@@ -641,124 +674,204 @@
             }
         };
 
-        // Research Management
-        const Research = {
-            async startResearch() {
-                if (!Utils.validateForm()) {
+        // File Upload Management
+        const FileUpload = {
+            async uploadFile() {
+                const fileInput = Elements.fileUploadInput;
+                const file = fileInput.files[0];
+
+                if (!file) {
+                    Utils.showAlert('Por favor selecciona un archivo para cargar.');
                     return;
                 }
 
-                AppState.isResearchInProgress = true;
-                AppState.researchStartTime = Date.now();
-                
-                this.updateResearchUI(true);
-                Utils.switchPage('researchProgress');
-                this.startTimer();
-                this.simulateProgress();
+                AppState.isUploadInProgress = true;
+                this.updateUploadUI(true);
 
                 try {
-                    const researchData = {
-                        question: Elements.customQuestion.value.trim() || Elements.suggestedQuestions.value,
-                        product: Elements.productInput.value.trim(),
-                        marketFocus: AppState.marketFocusTags,
-                        reportSections: Utils.getSelectedSections(),
-                        currency: AppState.marketFocusTags.includes('Chile') ? 'CLP' : 'USD',
-                        language: 'es'
-                    };
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('filename', file.name);
+                    formData.append('collection', 'general');
 
-                    // Replace product placeholder in question
-                    researchData.question = researchData.question.replace(/{product}/g, researchData.product);
-
-                    // Check if file is selected
-                    const fileInput = Elements.fileUploadInput;
-                    const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
-
-                    let requestBody;
-                    let requestHeaders = {};
-
-                    if (hasFile) {
-                        // Send as multipart/form-data with file
-                        const formData = new FormData();
-                        formData.append('file', fileInput.files[0]);
-                        formData.append('filename', fileInput.files[0].name);
-                        
-                        // Add all research data as individual form fields
-                        Object.keys(researchData).forEach(key => {
-                            if (Array.isArray(researchData[key])) {
-                                formData.append(key, JSON.stringify(researchData[key]));
-                            } else {
-                                formData.append(key, researchData[key]);
-                            }
-                        });
-                        
-                        requestBody = formData;
-                        // Don't set Content-Type - let browser set it with boundary
-                    } else {
-                        // Send as JSON (no file)
-                        requestBody = JSON.stringify(researchData);
-                        requestHeaders['Content-Type'] = 'application/json';
-                    }
-
-                    const response = await fetch(CONFIG.N8N_RESEARCH_WEBHOOK_URL, {
+                    const response = await fetch(CONFIG.N8N_UPLOAD_WEBHOOK_URL, {
                         method: 'POST',
-                        headers: requestHeaders,
-                        body: requestBody
+                        body: formData
                     });
 
                     if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`Investigación falló: ${response.status} ${response.statusText}. Response: ${errorText}`);
+                        throw new Error(`Carga falló: ${response.status} ${response.statusText}`);
                     }
 
-                    const responseText = await response.text();
-
-                    if (!responseText || responseText.trim() === '') {
-                        throw new Error('Respuesta vacía del webhook N8N. El flujo de trabajo puede no estar configurado para devolver datos.');
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        Utils.showAlert(`Archivo "${file.name}" cargado exitosamente!`, 'success');
+                        Elements.uploadFeedback.className = 'alert alert-success mt-3';
+                        Elements.uploadFeedback.innerHTML = `
+                            <strong>¡Carga exitosa!</strong><br>
+                            Archivo: ${file.name}<br>
+                            Estado: Disponible para investigación
+                        `;
+                        Elements.uploadFeedback.style.display = 'block';
+                        
+                        // Reset form
+                        fileInput.value = '';
+                    } else {
+                        throw new Error(result.message || 'Carga falló');
                     }
-
-                    let result;
-                    try {
-                        result = JSON.parse(responseText);
-                    } catch (parseError) {
-                        throw new Error(`Respuesta JSON inválida del webhook N8N. Se esperaba JSON pero se recibió: "${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}"`);
-                    }
-                    this.displayResults(result, researchData);
 
                 } catch (error) {
-                    console.error('Research error:', error);
-                    
-                    let errorMessage = error.message;
-                    if (error.message.includes('Failed to fetch')) {
-                        errorMessage = 'Error de red: No se puede conectar al webhook N8N. Verifica si la URL es correcta y el servicio está funcionando.';
-                    } else if (error.message.includes('CORS')) {
-                        errorMessage = 'Error CORS: El webhook N8N necesita permitir solicitudes de origen cruzado desde este dominio.';
-                    }
-                    
-                    Utils.showAlert(`Investigación falló: ${errorMessage}`);
-                    
-                    // Show retry option
-                    Elements.researchResults.innerHTML = `
-                        <div class="alert alert-danger">
-                            <h5 class="alert-heading">❌ Error en la investigación</h5>
-                            <p><strong>Error:</strong> ${errorMessage}</p>
-                            <hr>
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                                <button class="btn btn-warning" onclick="Research.startResearch()">
-                                    🔄 Reintentar investigación
-                                </button>
-                                <button class="btn btn-secondary" onclick="startNewResearch()">
-                                    ← Volver al inicio
-                                </button>
-                            </div>
-                        </div>
+                    console.error('Upload error:', error);
+                    Utils.showAlert(`Carga falló: ${error.message}`);
+                    Elements.uploadFeedback.className = 'alert alert-danger mt-3';
+                    Elements.uploadFeedback.innerHTML = `
+                        <strong>Error en la carga:</strong> ${error.message}<br>
+                        <button class="btn btn-sm btn-warning mt-2" onclick="FileUpload.uploadFile()">
+                            🔄 Reintentar carga
+                        </button>
                     `;
-                    Utils.switchPage('resultsPage');
+                    Elements.uploadFeedback.style.display = 'block';
                 } finally {
-                    AppState.isResearchInProgress = false;
-                    this.updateResearchUI(false);
-                    this.stopTimer();
+                    AppState.isUploadInProgress = false;
+                    this.updateUploadUI(false);
                 }
             },
+
+            updateUploadUI(isUploading) {
+                const uploadText = Elements.uploadBtn.querySelector('.upload-text');
+                const uploadSpinner = Elements.uploadBtn.querySelector('.upload-spinner');
+
+                if (isUploading) {
+                    uploadText.textContent = 'Cargando...';
+                    uploadSpinner.classList.remove('d-none');
+                    Elements.uploadBtn.disabled = true;
+                } else {
+                    uploadText.textContent = 'Cargar archivo';
+                    uploadSpinner.classList.add('d-none');
+                    Elements.uploadBtn.disabled = false;
+                }
+            }
+        };
+
+        // Research Management
+        const Research = {
+            async startResearch() {
+    if (!Utils.validateForm()) {
+        return;
+    }
+
+    AppState.isResearchInProgress = true;
+    AppState.researchStartTime = Date.now();
+    
+    this.updateResearchUI(true);
+    Utils.switchPage('researchProgress');
+    this.startTimer();
+    this.simulateProgress();
+
+    try {
+        const researchData = {
+            question: Elements.customQuestion.value.trim() || Elements.suggestedQuestions.value,
+            product: Elements.productInput.value.trim(),
+            marketFocus: AppState.marketFocusTags,
+            reportSections: Utils.getSelectedSections(),
+            currency: AppState.marketFocusTags.includes('Chile') ? 'CLP' : 'USD',
+            language: 'es'
+        };
+
+        // Replace product placeholder in question
+        researchData.question = researchData.question.replace(/{product}/g, researchData.product);
+
+        // Check if file is selected
+        const fileInput = Elements.fileUploadInput;
+        const hasFile = fileInput && fileInput.files && fileInput.files.length > 0;
+
+        let requestBody;
+        let requestHeaders = {};
+
+        if (hasFile) {
+            // Send as multipart/form-data with file
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('filename', fileInput.files[0].name);
+            
+            // Add all research data as individual form fields
+            Object.keys(researchData).forEach(key => {
+                if (Array.isArray(researchData[key])) {
+                    formData.append(key, JSON.stringify(researchData[key]));
+                } else {
+                    formData.append(key, researchData[key]);
+                }
+            });
+            
+            requestBody = formData;
+            // Don't set Content-Type - let browser set it with boundary
+        } else {
+            // Send as JSON (no file)
+            requestBody = JSON.stringify(researchData);
+            requestHeaders['Content-Type'] = 'application/json';
+        }
+
+        const response = await fetch(CONFIG.N8N_RESEARCH_WEBHOOK_URL, {
+            method: 'POST',
+            headers: requestHeaders,
+            body: requestBody
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Investigación falló: ${response.status} ${response.statusText}. Response: ${errorText}`);
+        }
+
+        const responseText = await response.text();
+
+        if (!responseText || responseText.trim() === '') {
+            throw new Error('Respuesta vacía del webhook N8N. El flujo de trabajo puede no estar configurado para devolver datos.');
+        }
+
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (parseError) {
+            throw new Error(`Respuesta JSON inválida del webhook N8N. Se esperaba JSON pero se recibió: "${responseText.substring(0, 200)}${responseText.length > 200 ? '...' : ''}"`);
+        }
+        this.displayResults(result, researchData);
+
+    } catch (error) {
+        console.error('Research error:', error);
+        
+        let errorMessage = error.message;
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage = 'Error de red: No se puede conectar al webhook N8N. Verifica si la URL es correcta y el servicio está funcionando.';
+        } else if (error.message.includes('CORS')) {
+            errorMessage = 'Error CORS: El webhook N8N necesita permitir solicitudes de origen cruzado desde este dominio.';
+        }
+        
+        Utils.showAlert(`Investigación falló: ${errorMessage}`);
+        
+        // Show retry option
+        Elements.researchResults.innerHTML = `
+            <div class="alert alert-danger">
+                <h5 class="alert-heading">❌ Error en la investigación</h5>
+                <p><strong>Error:</strong> ${errorMessage}</p>
+                <hr>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <button class="btn btn-warning" onclick="Research.startResearch()">
+                        🔄 Reintentar investigación
+                    </button>
+                    <button class="btn btn-secondary" onclick="startNewResearch()">
+                        ← Volver al inicio
+                    </button>
+                </div>
+            </div>
+        `;
+        Utils.switchPage('resultsPage');
+    } finally {
+        AppState.isResearchInProgress = false;
+        this.updateResearchUI(false);
+        this.stopTimer();
+    }
+},
 
             updateResearchUI(isResearching) {
                 const researchText = Elements.startResearchBtn.querySelector('.research-text');
@@ -827,8 +940,6 @@
                 // Display report download
                 if (result.status === 'success' && result.report_url) {
                     this.renderReportReady(result);
-                } else if (result.status === 'processing') {
-                    this.renderReportGenerating(result);
                 } else if (result.status === 'error') {
                     this.renderErrorResults(result);
                 } else {
@@ -839,26 +950,12 @@
             },
 
             renderReportReady(result) {
-                Elements.researchResults.innerHTML = `
-                    <div class="text-center mb-4">
-                        <div class="alert alert-success">
-                            <h4 class="alert-heading">✅ ¡Reporte listo!</h4>
-                            <p class="mb-3">Tu análisis de inteligencia competitiva ha sido generado exitosamente.</p>
-                            <hr>
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                                <a href="${result.report_url}" target="_blank" class="btn btn-primary btn-lg">
-                                    📊 Abrir reporte
-                                </a>
-                                <button class="btn btn-outline-primary btn-lg" onclick="Utils.copyToClipboard('${result.report_url}')">
-                                    🔗 Copiar enlace
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            },
+                if (!result.report_url) {
+                    this.renderErrorResults({ error_message: 'No se pudo generar el enlace del reporte.' });
+                    return;
+                }
 
-            renderReportGenerating(result) {
+
                 Elements.researchResults.innerHTML = `
                     <div class="text-center mb-4">
                         <div class="alert alert-info">
@@ -869,11 +966,11 @@
                                 <a href="https://drive.google.com/drive/u/0/folders/1mwULBmRkWsz6o6JSX83jYqKrCapQtFyO" target="_blank" class="btn btn-primary btn-lg">
                                     📁 Abrir carpeta de Drive
                                 </a>
-                            </div>
-                        </div>
-                    </div>
+                           </div>
+                         </div>
+                     </div>
                 `;
-            },
+             },
 
             renderErrorResults(result) {
                 Elements.researchResults.innerHTML = `
@@ -973,6 +1070,13 @@
                 }
             }, 300));
 
+            // File Upload
+            Elements.uploadBtn.addEventListener('click', () => {
+                if (!AppState.isUploadInProgress) {
+                    FileUpload.uploadFile();
+                }
+            });
+
             // Research
             Elements.startResearchBtn.addEventListener('click', () => {
                 if (!AppState.isResearchInProgress) {
@@ -984,7 +1088,16 @@
             Elements.fileUploadInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) {
-                    Utils.showAlert(`Archivo "${file.name}" seleccionado. Se procesará durante la investigación.`, 'success');
+                    // Show file info
+                    const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                    Elements.uploadFeedback.className = 'alert alert-info mt-3';
+                    Elements.uploadFeedback.innerHTML = `
+                        <strong>Archivo Seleccionado:</strong><br>
+                        Nombre: ${file.name}<br>
+                        Tamaño: ${fileSize} MB<br>
+                        Tipo: ${file.type}
+                    `;
+                    Elements.uploadFeedback.style.display = 'block';
                 }
             });
         }
